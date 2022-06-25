@@ -1,5 +1,6 @@
 import { escape } from 'mysql2';
 import { Common } from '../api/common';
+import config from '../config';
 import DB from '../database';
 import logger from '../logger';
 import PoolsRepository from './PoolsRepository';
@@ -30,9 +31,23 @@ class HashratesRepository {
   }
 
   public async $getNetworkDailyHashrate(interval: string | null): Promise<any[]> {
+    let daysResolution: number = 1;
+    switch (interval) {
+      case 'all': daysResolution = 7; break;
+      case '3y': daysResolution = 3; break;
+      case '2y': daysResolution = 2; break;
+      default: break;
+    }
+
+    if (config.MEMPOOL.NETWORK === 'testnet') {
+      daysResolution *= 2;
+    }
+    
     interval = Common.getSqlInterval(interval);
 
-    let query = `SELECT UNIX_TIMESTAMP(hashrate_timestamp) as timestamp, avg_hashrate as avgHashrate
+    let query = `SELECT
+      CAST(AVG(UNIX_TIMESTAMP(hashrate_timestamp)) as INT) as timestamp,
+      CAST(AVG(avg_hashrate) as DOUBLE) as avgHashrate
       FROM hashrates`;
 
     if (interval) {
@@ -42,6 +57,7 @@ class HashratesRepository {
       query += ` WHERE hashrates.type = 'daily'`;
     }
 
+    query += ` GROUP BY UNIX_TIMESTAMP(hashrate_timestamp) DIV ${daysResolution * 86400}`;
     query += ` ORDER by hashrate_timestamp`;
 
     try {

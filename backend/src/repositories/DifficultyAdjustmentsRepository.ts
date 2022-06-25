@@ -29,14 +29,28 @@ class DifficultyAdjustmentsRepository {
   }
 
   public async $getAdjustments(interval: string | null, descOrder: boolean = false): Promise<IndexedDifficultyAdjustment[]> {
+    let daysResolution: number = 1;
+    switch (interval) {
+      case 'all': daysResolution = 7; break;
+      case '3y': daysResolution = 3; break;
+      case '2y': daysResolution = 2; break;
+      default: break;
+    }
+
     interval = Common.getSqlInterval(interval);
 
-    let query = `SELECT UNIX_TIMESTAMP(time) as time, height, difficulty, adjustment
+    let query = `SELECT 
+      CAST(AVG(UNIX_TIMESTAMP(time)) as INT) as time,
+      CAST(AVG(height) AS INT) as height,
+      CAST(AVG(difficulty) as DOUBLE) as difficulty,
+      CAST(AVG(adjustment) as DOUBLE) as adjustment
       FROM difficulty_adjustments`;
 
     if (interval) {
       query += ` WHERE time BETWEEN DATE_SUB(NOW(), INTERVAL ${interval}) AND NOW()`;
     }
+
+    query += ` GROUP BY UNIX_TIMESTAMP(time) DIV ${daysResolution * 86400}`;
 
     if (descOrder === true) {
       query += ` ORDER BY time DESC`;
