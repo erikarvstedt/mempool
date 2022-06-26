@@ -4,7 +4,7 @@ import logger from '../logger';
 import { Common } from './common';
 
 class DatabaseMigration {
-  private static currentVersion = 21;
+  private static currentVersion = 22;
   private queryTimeout = 120000;
   private statisticsAddedIndexed = false;
   private uniqueLogs: string[] = [];
@@ -225,6 +225,18 @@ class DatabaseMigration {
       if (databaseSchemaVersion < 21) {
         await this.$executeQuery('DROP TABLE IF EXISTS `rates`');
         await this.$executeQuery(this.getCreatePricesTableQuery(), await this.$checkIfTableExists('prices'));
+      }
+
+      if (databaseSchemaVersion < 22) {
+        await this.$executeQuery('TRUNCATE `prices`');
+        await this.$executeQuery('ALTER TABLE `prices` DROP `avg_prices`');
+        await this.$executeQuery('ALTER TABLE `prices` ADD `USD` float DEFAULT "0"');
+        await this.$executeQuery('ALTER TABLE `prices` ADD `EUR` float DEFAULT "0"');
+        await this.$executeQuery('ALTER TABLE `prices` ADD `GBP` float DEFAULT "0"');
+        await this.$executeQuery('ALTER TABLE `prices` ADD `CAD` float DEFAULT "0"');
+        await this.$executeQuery('ALTER TABLE `prices` ADD `CHF` float DEFAULT "0"');
+        await this.$executeQuery('ALTER TABLE `prices` ADD `AUD` float DEFAULT "0"');
+        await this.$executeQuery('ALTER TABLE `prices` ADD `JPY` float DEFAULT "0"');
       }
     } catch (e) {
       throw e;
