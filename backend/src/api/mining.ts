@@ -7,9 +7,20 @@ import logger from '../logger';
 import { Common } from './common';
 import loadingIndicators from './loading-indicators';
 import { escape } from 'mysql2';
+import BlocksAuditsRepository from '../repositories/BlocksAuditsRepository';
 
 class Mining {
   constructor() {
+  }
+
+  /**
+   * Get historical block predictions match rate
+   */
+   public async $getBlockPredictionsHistory(interval: string | null = null): Promise<any> {
+    return await BlocksAuditsRepository.$getBlockPredictionsHistory(
+      this.getTimeRange(interval),
+      Common.getSqlInterval(interval)
+    );
   }
 
   /**
