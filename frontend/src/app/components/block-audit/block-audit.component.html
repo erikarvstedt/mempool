@@ -1,0 +1,117 @@
+<div class="container-xl" (window:resize)="onResize($event)">
+
+  <div class="title-block" id="block">
+    <h1>
+      <span class="next-previous-blocks">
+        <span i18n="shared.block-title">Block </span>
+        &nbsp;
+        <a [routerLink]="['/block/' | relativeUrl, block.id]">{{ block.height }}</a>
+        &nbsp;
+        <span i18n="shared.template-vs-mined">Template vs Mined</span>
+      </span>
+    </h1>
+
+    <div class="grow"></div>
+
+    <button [routerLink]="['/' | relativeUrl]" class="btn btn-sm">&#10005;</button>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div class="box mb-3">
+    <div class="row">
+      <!-- LEFT COLUMN -->
+      <div class="col-sm">
+        <table class="table table-borderless table-striped">
+          <tbody>
+            <tr>
+              <td class="td-width" i18n="block.hash">Hash</td>
+              <td><a [routerLink]="['/block/' | relativeUrl, block.id]" title="{{ block.id }}">{{ block.id |
+                  shortenString : 13 }}</a>
+                <app-clipboard class="d-none d-sm-inline-block" [text]="block.id"></app-clipboard>
+              </td>
+            </tr>
+            <tr>
+              <td i18n="block.timestamp">Timestamp</td>
+              <td>
+                &lrm;{{ block.timestamp * 1000 | date:'yyyy-MM-dd HH:mm' }}
+                <div class="lg-inline">
+                  <i class="symbol">(<app-time-since [time]="block.timestamp" [fastRender]="true"></app-time-since>)</i>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td i18n="block.size">Size</td>
+              <td [innerHTML]="'&lrm;' + (block.size | bytes: 2)"></td>
+            </tr>
+            <tr>
+              <td i18n="block.weight">Weight</td>
+              <td [innerHTML]="'&lrm;' + (block.weight | wuBytes: 2)"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div class="col-sm">
+        <table class="table table-borderless table-striped">
+          <tbody>
+            <tr>
+              <td class="td-width" i18n="shared.transaction-count">Transactions</td>
+              <td>{{ block.tx_count }}</td>
+            </tr>
+            <tr>
+              <td i18n="block.match-rate">Match rate</td>
+              <td>{{ blockAudit.matchRate }}%</td>
+            </tr>
+            <tr>
+              <td i18n="block.missing-txs">Missing txs</td>
+              <td>{{ blockAudit.missingTxs.length }}</td>
+            </tr>
+            <tr>
+              <td i18n="block.added-txs">Added txs</td>
+              <td>{{ blockAudit.addedTxs.length }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div> <!-- row -->
+  </div> <!-- box -->
+
+  <!-- VISUALIZATIONS -->
+  <div class="box">
+    <div class="row">
+      <!-- MISSING TX RENDERING -->
+      <div class="col-sm" *ngIf="webGlEnabled">
+        <app-block-overview-graph #blockGraph [isLoading]="isLoading" [resolution]="75"
+          [blockLimit]="stateService.blockVSize" [orientation]="'top'" [flip]="false"
+          (txClickEvent)="onTxClick($event)"></app-block-overview-graph>
+      </div>
+
+      <!-- ADDED TX RENDERING -->
+      <div class="col-sm" *ngIf="webGlEnabled && !isMobile">
+        <app-block-overview-graph #blockGraph [isLoading]="isLoading" [resolution]="75"
+          [blockLimit]="stateService.blockVSize" [orientation]="'top'" [flip]="false"
+          (txClickEvent)="onTxClick($event)"></app-block-overview-graph>
+      </div>
+    </div> <!-- row -->
+  </div> <!-- box -->
+
+  <!-- ADDED vs MISSING button -->
+  <div class="d-flex justify-content-center menu mt-3">
+    <a routerLinkActive="active" class="btn btn-primary w-50 mr-1 ml-1 menu-button" i18n="block.missing-txs"
+    fragment="missing" (click)="changeMode('missing')">Missing</a>
+    <a routerLinkActive="active" class="btn btn-primary w-50 mr-1 ml-1 menu-button" i18n="block.added-txs"
+      fragment="added" (click)="changeMode('added')">Added</a>
+  </div>
+
+  <!-- TX COUNT TITLE AND PAGINATION-->
+  <div #blockTxTitle id="block-tx-title" class="block-tx-title mt-3">
+    <h2 class="text-left">
+      <ng-container *ngTemplateOutlet="block.tx_count === 1 ? transactionsSingular : transactionsPlural; context: {$implicit: block.tx_count | number}"></ng-container>
+      <ng-template #transactionsSingular let-i i18n="shared.transaction-count.singular">{{ i }} transaction</ng-template>
+      <ng-template #transactionsPlural let-i i18n="shared.transaction-count.plural">{{ i }} transactions</ng-template>
+    </h2>
+    <ngb-pagination class="pagination-container float-right" [collectionSize]="block.tx_count" [rotate]="true" [pageSize]="itemsPerPage" [(page)]="page" (pageChange)="pageChange(page, blockTxTitle)" [maxSize]="paginationMaxSize" [boundaryLinks]="true" [ellipses]="false"></ngb-pagination>
+  </div>
+
+</div>

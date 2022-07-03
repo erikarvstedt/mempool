@@ -128,6 +128,12 @@ export interface BlockExtended extends Block {
   extras?: BlockExtension;
 }
 
+export interface BlockAudit {
+  missingTxs: string[],
+  addedTxs: string[],
+  matchRate: number,
+}
+
 export interface TransactionStripped {
   txid: string;
   fee: number;
