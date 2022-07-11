@@ -151,7 +151,6 @@
             "tsConfig": "tsconfig.app.json",
             "assets": [
               "src/favicon.ico",
-              "src/resources",
               "src/robots.txt"
             ],
             "styles": [
