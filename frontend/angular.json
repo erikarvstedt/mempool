@@ -207,7 +207,12 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "browserTarget": "mempool:build"
+            "browserTarget": "mempool:build",
+            "assets": [
+              "src/favicon.ico",
+              "src/resources",
+              "src/robots.txt"
+            ]
           },
           "configurations": {
             "production": {
