@@ -64,13 +64,21 @@ class BitcoinApi implements AbstractBitcoinApi {
       });
   }
 
+  $getBlockHashTip(): Promise<string> {
+    return this.bitcoindClient.getChainTips()
+      .then((result: IBitcoinApi.ChainTips[]) => {
+        return result.find(tip => tip.status === 'active')!.hash;
+      });
+  }
+
   $getTxIdsForBlock(hash: string): Promise<string[]> {
     return this.bitcoindClient.getBlock(hash, 1)
       .then((rpcBlock: IBitcoinApi.Block) => rpcBlock.tx);
   }
 
   $getRawBlock(hash: string): Promise<string> {
-    return this.bitcoindClient.getBlock(hash, 0);
+    return this.bitcoindClient.getBlock(hash, 0)
+      .then((raw: string) => Buffer.from(raw, "hex"));
   }
 
   $getBlockHash(height: number): Promise<string> {
@@ -121,6 +129,16 @@ class BitcoinApi implements AbstractBitcoinApi {
 
   $sendRawTransaction(rawTransaction: string): Promise<string> {
     return this.bitcoindClient.sendRawTransaction(rawTransaction);
+  }
+
+  async $getOutspend(txId: string, vout: number): Promise<IEsploraApi.Outspend> {
+    const txOut = await this.bitcoindClient.getTxOut(txId, vout, false);
+    return {
+      spent: txOut === null,
+      status: {
+        confirmed: true,
+      }
+    };
   }
 
   async $getOutspends(txId: string): Promise<IEsploraApi.Outspend[]> {
@@ -188,7 +206,9 @@ class BitcoinApi implements AbstractBitcoinApi {
         sequence: vin.sequence,
         txid: vin.txid || '',
         vout: vin.vout || 0,
-        witness: vin.txinwitness,
+        witness: vin.txinwitness || [],
+        inner_redeemscript_asm: '',
+        inner_witnessscript_asm: '',
       };
     });
 

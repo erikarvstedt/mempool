@@ -50,15 +50,12 @@
             <tbody>
               <tr>
                 <td class="td-width" i18n="block.hash">Hash</td>
-                <td><a [routerLink]="['/block/' | relativeUrl, block.id]" title="{{ block.id }}">{{ block.id | shortenString : 13 }}</a> <app-clipboard class="d-none d-sm-inline-block" [text]="block.id"></app-clipboard></td>
+                <td>&lrm;<a [routerLink]="['/block/' | relativeUrl, block.id]" title="{{ block.id }}">{{ block.id | shortenString : 13 }}</a> <app-clipboard class="d-none d-sm-inline-block" [text]="block.id"></app-clipboard></td>
               </tr>
               <tr>
                 <td i18n="block.timestamp">Timestamp</td>
                 <td>
-                  &lrm;{{ block.timestamp * 1000 | date:'yyyy-MM-dd HH:mm' }}
-                  <div class="lg-inline">
-                    <i class="symbol">(<app-time-since [time]="block.timestamp" [fastRender]="true"></app-time-since>)</i>
-                  </div>
+                  <app-timestamp [unixTime]="block.timestamp"></app-timestamp>
                 </td>
               </tr>
               <tr>
@@ -113,13 +110,13 @@
                 <tr *ngIf="network !== 'liquid' && network !== 'liquidtestnet'">
                   <td i18n="block.miner">Miner</td>
                   <td *ngIf="stateService.env.MINING_DASHBOARD">
-                    <a placement="bottom" [routerLink]="['/mining/pool' | relativeUrl, block.extras.pool.slug]" class="badge"
+                    <a [attr.data-cy]="'block-details-miner-badge'" placement="bottom" [routerLink]="['/mining/pool' | relativeUrl, block.extras.pool.slug]" class="badge"
                       [class]="block.extras.pool.name === 'Unknown' ? 'badge-secondary' : 'badge-primary'">
                       {{ block.extras.pool.name }}
                     </a>
                   </td>
                   <td *ngIf="!stateService.env.MINING_DASHBOARD && stateService.env.BASE_MODULE === 'mempool'">
-                    <span placement="bottom" class="badge"
+                    <span [attr.data-cy]="'block-details-miner-badge'" placement="bottom" class="badge"
                       [class]="block.extras.pool.name === 'Unknown' ? 'badge-secondary' : 'badge-primary'">
                       {{ block.extras.pool.name }}
                   </span>
@@ -358,7 +355,7 @@
     <div class="text-center">
       <span i18n="error.general-loading-data">Error loading data.</span>
       <br><br>
-      <i>{{ error.code }}: {{ error.error }}</i>
+      <i>{{ error.status }}: {{ error.error }}</i>
     </div>
   </ng-template>
 

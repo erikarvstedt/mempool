@@ -4,7 +4,7 @@ import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { ElectrsApiService } from '../../services/electrs-api.service';
 import { switchMap, tap, throttleTime, catchError, map, shareReplay, startWith, pairwise } from 'rxjs/operators';
 import { Transaction, Vout } from '../../interfaces/electrs.interface';
-import { Observable, of, Subscription, asyncScheduler } from 'rxjs';
+import { Observable, of, Subscription, asyncScheduler, EMPTY } from 'rxjs';
 import { StateService } from '../../services/state.service';
 import { SeoService } from 'src/app/services/seo.service';
 import { WebsocketService } from 'src/app/services/websocket.service';
@@ -12,6 +12,7 @@ import { RelativeUrlPipe } from 'src/app/shared/pipes/relative-url/relative-url.
 import { BlockExtended, TransactionStripped } from 'src/app/interfaces/node-api.interface';
 import { ApiService } from 'src/app/services/api.service';
 import { BlockOverviewGraphComponent } from 'src/app/components/block-overview-graph/block-overview-graph.component';
+import { detectWebGL } from 'src/app/shared/graphs.utils';
 
 @Component({
   selector: 'app-block',
@@ -141,8 +142,21 @@ export class BlockComponent implements OnInit, OnDestroy {
                   this.location.replaceState(
                     this.router.createUrlTree([(this.network ? '/' + this.network : '') + '/block/', hash]).toString()
                   );
-                  return this.apiService.getBlock$(hash);
-                })
+                  return this.apiService.getBlock$(hash).pipe(
+                    catchError((err) => {
+                      this.error = err;
+                      this.isLoadingBlock = false;
+                      this.isLoadingOverview = false;
+                      return EMPTY;
+                    })
+                  );
+                }),
+                catchError((err) => {
+                  this.error = err;
+                  this.isLoadingBlock = false;
+                  this.isLoadingOverview = false;
+                  return EMPTY;
+                }),
               );
           }
 
@@ -151,7 +165,14 @@ export class BlockComponent implements OnInit, OnDestroy {
             return of(blockInCache);
           }
 
-          return this.apiService.getBlock$(blockHash);
+          return this.apiService.getBlock$(blockHash).pipe(
+            catchError((err) => {
+              this.error = err;
+              this.isLoadingBlock = false;
+              this.isLoadingOverview = false;
+              return EMPTY;
+            })
+          );
         }
       }),
       tap((block: BlockExtended) => {
@@ -167,7 +188,6 @@ export class BlockComponent implements OnInit, OnDestroy {
 
         this.block = block;
         this.blockHeight = block.height;
-        const direction = (this.lastBlockHeight < this.blockHeight) ? 'right' : 'left';
         this.lastBlockHeight = this.blockHeight;
         this.nextBlockHeight = block.height + 1;
         this.setNextAndPreviousBlockLink();
@@ -390,10 +410,4 @@ export class BlockComponent implements OnInit, OnDestroy {
     const url = new RelativeUrlPipe(this.stateService).transform(`/tx/${event.txid}`);
     this.router.navigate([url]);
   }
-}
-
-function detectWebGL() {
-  const canvas = document.createElement('canvas');
-  const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-  return (gl && gl instanceof WebGLRenderingContext);
 }

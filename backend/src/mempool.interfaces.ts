@@ -22,6 +22,15 @@ export interface PoolStats extends PoolInfo {
   emptyBlocks: number;
 }
 
+export interface BlockAudit {
+  time: number,
+  height: number,
+  hash: string,
+  missingTxs: string[],
+  addedTxs: string[],
+  matchRate: number,
+}
+
 export interface MempoolBlock {
   blockSize: number;
   blockVSize: number;
@@ -100,6 +109,7 @@ export interface BlockExtension {
   avgFee?: number;
   avgFeeRate?: number;
   coinbaseRaw?: string;
+  usd?: number | null;
 }
 
 export interface BlockExtended extends IEsploraApi.Block {
@@ -109,6 +119,11 @@ export interface BlockExtended extends IEsploraApi.Block {
 export interface BlockSummary {
   id: string;
   transactions: TransactionStripped[];
+}
+
+export interface BlockPrice {
+  height: number;
+  priceId: number;
 }
 
 export interface TransactionMinerInfo {
@@ -224,8 +239,53 @@ export interface IDifficultyAdjustment {
   timeOffset: number;
 }
 
+export interface IndexedDifficultyAdjustment {
+  time: number; // UNIX timestamp
+  height: number; // Block height
+  difficulty: number;
+  adjustment: number;
+}
+
 export interface RewardStats {
   totalReward: number;
   totalFee: number;
   totalTx: number;
+}
+
+export interface ITopNodesPerChannels {
+  publicKey: string,
+  alias: string,
+  channels?: number,
+  capacity: number,
+  firstSeen?: number,
+  updatedAt?: number,
+  city?: any,
+  country?: any,
+}
+
+export interface ITopNodesPerCapacity {
+  publicKey: string,
+  alias: string,
+  capacity: number,
+  channels?: number,
+  firstSeen?: number,
+  updatedAt?: number,
+  city?: any,
+  country?: any,
+}
+
+export interface INodesRanking {
+  topByCapacity: ITopNodesPerCapacity[];
+  topByChannels: ITopNodesPerChannels[];
+}
+
+export interface IOldestNodes {
+  publicKey: string,
+  alias: string,
+  firstSeen: number,
+  channels?: number,
+  capacity: number,
+  updatedAt?: number,
+  city?: any,
+  country?: any,
 }

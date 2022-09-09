@@ -1,17 +1,22 @@
 import { NgModule } from '@angular/core';
-import { Routes, RouterModule, PreloadAllModules } from '@angular/router';
+import { Routes, RouterModule } from '@angular/router';
+import { AppPreloadingStrategy } from './app.preloading-strategy'
 import { StartComponent } from './components/start/start.component';
 import { TransactionComponent } from './components/transaction/transaction.component';
+import { TransactionPreviewComponent } from './components/transaction/transaction-preview.component';
 import { BlockComponent } from './components/block/block.component';
+import { BlockAuditComponent } from './components/block-audit/block-audit.component';
+import { BlockPreviewComponent } from './components/block/block-preview.component';
 import { AddressComponent } from './components/address/address.component';
+import { AddressPreviewComponent } from './components/address/address-preview.component';
 import { MasterPageComponent } from './components/master-page/master-page.component';
+import { MasterPagePreviewComponent } from './components/master-page-preview/master-page-preview.component';
 import { AboutComponent } from './components/about/about.component';
 import { StatusViewComponent } from './components/status-view/status-view.component';
 import { TermsOfServiceComponent } from './components/terms-of-service/terms-of-service.component';
 import { PrivacyPolicyComponent } from './components/privacy-policy/privacy-policy.component';
 import { TrademarkPolicyComponent } from './components/trademark-policy/trademark-policy.component';
 import { BisqMasterPageComponent } from './components/bisq-master-page/bisq-master-page.component';
-import { SponsorComponent } from './components/sponsor/sponsor.component';
 import { PushTransactionComponent } from './components/push-transaction/push-transaction.component';
 import { BlocksList } from './components/blocks-list/blocks-list.component';
 import { LiquidMasterPageComponent } from './components/liquid-master-page/liquid-master-page.component';
@@ -21,14 +26,19 @@ import { AssetsComponent } from './components/assets/assets.component';
 import { AssetComponent } from './components/asset/asset.component';
 import { AssetsNavComponent } from './components/assets/assets-nav/assets-nav.component';
 
+const browserWindow = window || {};
+// @ts-ignore
+const browserWindowEnv = browserWindow.__env || {};
+
 let routes: Routes = [
-  { 
+  {
     path: 'testnet',
     children: [
       {
         path: '',
         pathMatch: 'full',
-        loadChildren: () => import('./graphs/graphs.module').then(m => m.GraphsModule)
+        loadChildren: () => import('./graphs/graphs.module').then(m => m.GraphsModule),
+        data: { preload: true },
       },
       {
         path: '',
@@ -66,7 +76,10 @@ let routes: Routes = [
           {
             path: 'address/:id',
             children: [],
-            component: AddressComponent
+            component: AddressComponent,
+            data: {
+              ogImage: true
+            }
           },
           {
             path: 'tx',
@@ -84,17 +97,35 @@ let routes: Routes = [
               children: [
               {
                 path: ':id',
-                component: BlockComponent
+                component: BlockComponent,
+                data: {
+                  ogImage: true
+                }
+              },
+            ],
+          },
+          {
+            path: 'block-audit',
+            children: [
+              {
+                path: ':id',
+                component: BlockAuditComponent,
               },
             ],
           },
           {
             path: 'docs',
-            loadChildren: () => import('./docs/docs.module').then(m => m.DocsModule)
+            loadChildren: () => import('./docs/docs.module').then(m => m.DocsModule),
+            data: { preload: true },
           },
           {
             path: 'api',
             loadChildren: () => import('./docs/docs.module').then(m => m.DocsModule)
+          },
+          {
+            path: 'lightning',
+            loadChildren: () => import('./lightning/lightning.module').then(m => m.LightningModule),
+            data: { preload: browserWindowEnv && browserWindowEnv.LIGHTNING === true },
           },
         ],
       },
@@ -156,7 +187,10 @@ let routes: Routes = [
           {
             path: 'address/:id',
             children: [],
-            component: AddressComponent
+            component: AddressComponent,
+            data: {
+              ogImage: true
+            }
           },
           {
             path: 'tx',
@@ -171,10 +205,22 @@ let routes: Routes = [
           {
             path: 'block',
             component: StartComponent,
-              children: [
+            children: [
               {
                 path: ':id',
-                component: BlockComponent
+                component: BlockComponent,
+                data: {
+                  ogImage: true
+                }
+              },
+            ],
+          },
+          {
+            path: 'block-audit',
+            children: [
+              {
+                path: ':id',
+                component: BlockAuditComponent,
               },
             ],
           },
@@ -185,6 +231,10 @@ let routes: Routes = [
           {
             path: 'api',
             loadChildren: () => import('./docs/docs.module').then(m => m.DocsModule)
+          },
+          {
+            path: 'lightning',
+            loadChildren: () => import('./lightning/lightning.module').then(m => m.LightningModule)
           },
         ],
       },
@@ -243,7 +293,10 @@ let routes: Routes = [
       {
         path: 'address/:id',
         children: [],
-        component: AddressComponent
+        component: AddressComponent,
+        data: {
+          ogImage: true
+        }
       },
       {
         path: 'tx',
@@ -258,10 +311,22 @@ let routes: Routes = [
       {
         path: 'block',
         component: StartComponent,
-          children: [
+        children: [
           {
             path: ':id',
-            component: BlockComponent
+            component: BlockComponent,
+            data: {
+              ogImage: true
+            }
+          },
+        ],
+      },
+      {
+        path: 'block-audit',
+        children: [
+          {
+            path: ':id',
+            component: BlockAuditComponent
           },
         ],
       },
@@ -273,15 +338,75 @@ let routes: Routes = [
         path: 'api',
         loadChildren: () => import('./docs/docs.module').then(m => m.DocsModule)
       },
+      {
+        path: 'lightning',
+        loadChildren: () => import('./lightning/lightning.module').then(m => m.LightningModule)
+      },
+    ],
+  },
+  {
+    path: 'preview',
+    component: MasterPagePreviewComponent,
+    children: [
+      {
+        path: 'block/:id',
+        component: BlockPreviewComponent
+      },
+      {
+        path: 'testnet/block/:id',
+        component: BlockPreviewComponent
+      },
+      {
+        path: 'signet/block/:id',
+        component: BlockPreviewComponent
+      },
+      {
+        path: 'address/:id',
+        children: [],
+        component: AddressPreviewComponent
+      },
+      {
+        path: 'testnet/address/:id',
+        children: [],
+        component: AddressPreviewComponent
+      },
+      {
+        path: 'signet/address/:id',
+        children: [],
+        component: AddressPreviewComponent
+      },
+      {
+        path: 'tx/:id',
+        children: [],
+        component: TransactionPreviewComponent
+      },
+      {
+        path: 'testnet/tx/:id',
+        children: [],
+        component: TransactionPreviewComponent
+      },
+      {
+        path: 'signet/tx/:id',
+        children: [],
+        component: TransactionPreviewComponent
+      },
+      {
+        path: 'lightning',
+        loadChildren: () => import('./lightning/lightning-previews.module').then(m => m.LightningPreviewsModule)
+      },
+      {
+        path: 'testnet/lightning',
+        loadChildren: () => import('./lightning/lightning-previews.module').then(m => m.LightningPreviewsModule)
+      },
+      {
+        path: 'signet/lightning',
+        loadChildren: () => import('./lightning/lightning-previews.module').then(m => m.LightningPreviewsModule)
+      },
     ],
   },
   {
     path: 'status',
     component: StatusViewComponent
-  },
-  {
-    path: 'sponsor',
-    component: SponsorComponent,
   },
   {
     path: '',
@@ -292,10 +417,6 @@ let routes: Routes = [
     redirectTo: ''
   },
 ];
-
-const browserWindow = window || {};
-// @ts-ignore
-const browserWindowEnv = browserWindow.__env || {};
 
 if (browserWindowEnv && browserWindowEnv.BASE_MODULE === 'bisq') {
   routes = [{
@@ -346,7 +467,10 @@ if (browserWindowEnv && browserWindowEnv.BASE_MODULE === 'liquid') {
             {
               path: 'address/:id',
               children: [],
-              component: AddressComponent
+              component: AddressComponent,
+              data: {
+                ogImage: true
+              }
             },
             {
               path: 'tx',
@@ -361,10 +485,13 @@ if (browserWindowEnv && browserWindowEnv.BASE_MODULE === 'liquid') {
             {
               path: 'block',
               component: StartComponent,
-                children: [
+              children: [
                 {
                   path: ':id',
-                  component: BlockComponent
+                  component: BlockComponent,
+                  data: {
+                    ogImage: true
+                  }
                 },
               ],
             },
@@ -450,7 +577,10 @@ if (browserWindowEnv && browserWindowEnv.BASE_MODULE === 'liquid') {
         {
           path: 'address/:id',
           children: [],
-          component: AddressComponent
+          component: AddressComponent,
+          data: {
+            ogImage: true
+          }
         },
         {
           path: 'tx',
@@ -465,10 +595,13 @@ if (browserWindowEnv && browserWindowEnv.BASE_MODULE === 'liquid') {
         {
           path: 'block',
           component: StartComponent,
-            children: [
+          children: [
             {
               path: ':id',
-              component: BlockComponent
+              component: BlockComponent,
+              data: {
+                ogImage: true
+              }
             },
           ],
         },
@@ -509,12 +642,42 @@ if (browserWindowEnv && browserWindowEnv.BASE_MODULE === 'liquid') {
       ],
     },
     {
-      path: 'status',
-      component: StatusViewComponent
+      path: 'preview',
+      component: MasterPagePreviewComponent,
+      children: [
+        {
+          path: 'block/:id',
+          component: BlockPreviewComponent
+        },
+        {
+          path: 'testnet/block/:id',
+          component: BlockPreviewComponent
+        },
+        {
+          path: 'address/:id',
+          children: [],
+          component: AddressPreviewComponent
+        },
+        {
+          path: 'testnet/address/:id',
+          children: [],
+          component: AddressPreviewComponent
+        },
+        {
+          path: 'tx/:id',
+          children: [],
+          component: TransactionPreviewComponent
+        },
+        {
+          path: 'testnet/tx/:id',
+          children: [],
+          component: TransactionPreviewComponent
+        },
+      ],
     },
     {
-      path: 'sponsor',
-      component: SponsorComponent,
+      path: 'status',
+      component: StatusViewComponent
     },
     {
       path: '',
@@ -532,8 +695,7 @@ if (browserWindowEnv && browserWindowEnv.BASE_MODULE === 'liquid') {
     initialNavigation: 'enabled',
     scrollPositionRestoration: 'enabled',
     anchorScrolling: 'enabled',
-    preloadingStrategy: PreloadAllModules
+    preloadingStrategy: AppPreloadingStrategy
   })],
 })
 export class AppRoutingModule { }
-

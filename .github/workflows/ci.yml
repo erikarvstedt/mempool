@@ -1,48 +1,96 @@
 name: CI Pipeline for the Backend and Frontend
+
 on:
-  push:
-env:
-  NODE_VERSION: 16.15.0
+  pull_request:
+    types: [opened, review_requested, synchronize]
+
 jobs:
-  build_backend:
-    name: Build backend
-    runs-on: ubuntu-latest
+  backend:
+    if: "!contains(github.event.pull_request.labels.*.name, 'ops') && !contains(github.head_ref, 'ops/')"
+    strategy:
+      matrix:
+        node: ["16.16.0", "18.5.0"]
+        flavor: ["dev", "prod"]
+      fail-fast: false
+    runs-on: "ubuntu-latest"
+
+    name: Backend (${{ matrix.flavor }}) - node ${{ matrix.node }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          path: ${{ matrix.node }}/${{ matrix.flavor }}
+
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          registry-url: 'https://registry.npmjs.org'
-      - name: Install 
-        run: npm install --prod
-        working-directory: backend
-    #  - name: Lint 
-    #    run: npm run lint
-    #  - name: Test 
-    #    run: npm run test
+          node-version: ${{ matrix.node }}
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install
+        if: ${{ matrix.flavor == 'dev'}}
+        run: npm ci
+        working-directory: ${{ matrix.node }}/${{ matrix.flavor }}/backend
+
+      - name: Install (Prod dependencies only)
+        if: ${{ matrix.flavor == 'prod'}}
+        run: npm ci --omit=dev --omit=optional
+        working-directory: ${{ matrix.node }}/${{ matrix.flavor }}/backend
+
+      - name: Lint
+        if: ${{ matrix.flavor == 'dev'}}
+        run: npm run lint
+        working-directory: ${{ matrix.node }}/${{ matrix.flavor }}/backend
+
+      - name: Unit Tests
+        if: ${{ matrix.flavor == 'dev'}}
+        run: npm run test
+        working-directory: ${{ matrix.node }}/${{ matrix.flavor }}/backend
+
       - name: Build
         run: npm run build
-        working-directory: backend
-  build_frontend:
-    name: Build frontend
-    runs-on: ubuntu-latest
+        working-directory: ${{ matrix.node }}/${{ matrix.flavor }}/backend
+
+  frontend:
+    if: "!contains(github.event.pull_request.labels.*.name, 'ops') && !contains(github.head_ref, 'ops/')"
+    strategy:
+      matrix:
+        node: ["16.15.0", "18.5.0"]
+        flavor: ["dev", "prod"]
+      fail-fast: false
+    runs-on: "ubuntu-latest"
+
+    name: Frontend (${{ matrix.flavor }}) - node ${{ matrix.node }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          path: ${{ matrix.node }}/${{ matrix.flavor }}
+
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          registry-url: 'https://registry.npmjs.org'
-      - name: Install 
-        run: npm install --prod
-        working-directory: frontend
-      # - name: Lint 
-      #   run: npm run lint
-      # - name: Test 
+          node-version: ${{ matrix.node }}
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install (Prod dependencies only)
+        run: npm ci --omit=dev --omit=optional
+        if: ${{ matrix.flavor == 'prod'}}
+        working-directory: ${{ matrix.node }}/${{ matrix.flavor }}/frontend
+
+      - name: Install
+        if: ${{ matrix.flavor == 'dev'}}
+        run: npm ci
+        working-directory: ${{ matrix.node }}/${{ matrix.flavor }}/frontend
+
+      - name: Lint
+        if: ${{ matrix.flavor == 'dev'}}
+        run: npm run lint
+        working-directory: ${{ matrix.node }}/${{ matrix.flavor }}/frontend
+
+      # - name: Test
       #   run: npm run test
+
       - name: Build
         run: npm run build
-        working-directory: frontend
+        working-directory: ${{ matrix.node }}/${{ matrix.flavor }}/frontend

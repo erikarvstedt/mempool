@@ -22,6 +22,7 @@ import { DashboardComponent } from '../dashboard/dashboard.component';
 import { MiningDashboardComponent } from '../components/mining-dashboard/mining-dashboard.component';
 import { HashrateChartComponent } from '../components/hashrate-chart/hashrate-chart.component';
 import { HashrateChartPoolsComponent } from '../components/hashrates-chart-pools/hashrate-chart-pools.component';
+import { BlockPredictionGraphComponent } from '../components/block-prediction-graph/block-prediction-graph.component';
 import { CommonModule } from '@angular/common';
 
 @NgModule({
@@ -47,6 +48,7 @@ import { CommonModule } from '@angular/common';
     LbtcPegsGraphComponent,
     HashrateChartComponent,
     HashrateChartPoolsComponent,
+    BlockPredictionGraphComponent,
   ],
   imports: [
     CommonModule,
@@ -55,6 +57,9 @@ import { CommonModule } from '@angular/common';
     NgxEchartsModule.forRoot({
       echarts: () => import('echarts')
     })
+  ],
+  exports: [
+    NgxEchartsModule,
   ]
 })
 export class GraphsModule { }

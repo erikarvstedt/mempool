@@ -87,6 +87,11 @@ body {
   box-shadow: 0.125rem 0.125rem 0.25rem rgba(0,0,0,0.075);
 }
 
+.preview-box {
+  min-height: 520px;
+  padding: 1rem 3rem 1.5rem;
+}
+
 @media (max-width: 767.98px) {
   .box {
     padding: 0.75rem;
@@ -700,6 +705,10 @@ th {
 .locktime { color: #ff8c00 }
 .reserved { color: #ff8c00 }
 
+.shortable-address {
+  font-family: monospace;
+}
+
 .rtl-layout {
 
   .navbar-brand {
@@ -849,6 +858,41 @@ th {
     .formRadioGroup {
       @extend .formRadioGroup;
       direction: ltr;
+    }
+  }
+
+  .fee-progress-bar {
+    @extend .fee-progress-bar;
+    &.priority {
+      @media (767px < width < 992px), (width < 576px) {
+        width: 100%;
+      }
+      width: 75%;
+      border-radius: 10px 0px 0px 10px !important;
+    }
+  }
+
+  .fees-wrapper-tooltip-chart {
+    @extend .fees-wrapper-tooltip-chart;
+    .title {
+      direction: rtl;
+    }
+  }
+
+  .btn-link {
+    padding: 0.1rem 0.5rem 0.25rem 0 !important;
+  }
+
+  .shortable-address {
+    direction: ltr;
+    font-family: monospace;
+  }
+
+  .lastest-blocks-table {
+    @extend .lastest-blocks-table;
+    .table-cell-mined {
+      @extend .table-cell-mined;
+      text-align: right !important;
     }
   }
 
@@ -1011,4 +1055,12 @@ th {
   animation: shadowyBackground 1s infinite;
   box-shadow: -10px -15px 75px rgba(#eba814, 1);
   transition: 100ms all ease-in;
+}
+
+.page-item {
+  font-family: monospace;
+}
+
+#divider {
+  background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='104%25' height='100%25' fill='none' stroke='white' stroke-width='4' stroke-dasharray='10%2c17' stroke-dashoffset='18' stroke-linecap='square'/%3e%3c/svg%3e");
 }

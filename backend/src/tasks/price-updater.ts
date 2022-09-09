@@ -1,4 +1,6 @@
 import * as fs from 'fs';
+import path from "path";
+import { Common } from '../api/common';
 import config from '../config';
 import logger from '../logger';
 import PricesRepository from '../repositories/PricesRepository';
@@ -16,7 +18,7 @@ export interface PriceFeed {
   currencies: string[];
 
   $fetchPrice(currency): Promise<number>;
-  $fetchRecentHourlyPrice(currencies: string[]): Promise<PriceHistory>;
+  $fetchRecentPrice(currencies: string[], type: string): Promise<PriceHistory>;
 }
 
 export interface PriceHistory {
@@ -34,10 +36,10 @@ export interface Prices {
 }
 
 class PriceUpdater {
-  historyInserted: boolean = false;
-  lastRun: number = 0;
-  lastHistoricalRun: number = 0;
-  running: boolean = false;
+  public historyInserted = false;
+  lastRun = 0;
+  lastHistoricalRun = 0;
+  running = false;
   feeds: PriceFeed[] = [];
   currencies: string[] = ['USD', 'EUR', 'GBP', 'CAD', 'CHF', 'AUD', 'JPY'];
   latestPrices: Prices;
@@ -158,7 +160,7 @@ class PriceUpdater {
     const existingPriceTimes = await PricesRepository.$getPricesTimes();
 
     // Insert MtGox weekly prices
-    const pricesJson: any[] = JSON.parse(fs.readFileSync('./src/tasks/price-feeds/mtgox-weekly.json').toString());
+    const pricesJson: any[] = JSON.parse(fs.readFileSync(path.join(__dirname, 'mtgox-weekly.json')).toString());
     const prices = this.getEmptyPricesObj();
     let insertedCount: number = 0;
     for (const price of pricesJson) {
@@ -176,14 +178,17 @@ class PriceUpdater {
       ++insertedCount;
     }
     if (insertedCount > 0) {
-      logger.info(`Inserted ${insertedCount} MtGox USD weekly price history into db`);
+      logger.notice(`Inserted ${insertedCount} MtGox USD weekly price history into db`);
+    } else {
+      logger.debug(`Inserted ${insertedCount} MtGox USD weekly price history into db`);
     }
 
     // Insert Kraken weekly prices
     await new KrakenApi().$insertHistoricalPrice();
 
     // Insert missing recent hourly prices
-    await this.$insertMissingRecentPrices();
+    await this.$insertMissingRecentPrices('day');
+    await this.$insertMissingRecentPrices('hour');
 
     this.historyInserted = true;
     this.lastHistoricalRun = new Date().getTime();
@@ -193,35 +198,35 @@ class PriceUpdater {
    * Find missing hourly prices and insert them in the database
    * It has a limited backward range and it depends on which API are available
    */
-  private async $insertMissingRecentPrices(): Promise<void> {
+  private async $insertMissingRecentPrices(type: 'hour' | 'day'): Promise<void> {
     const existingPriceTimes = await PricesRepository.$getPricesTimes();
 
-    logger.info(`Fetching hourly price history from exchanges and saving missing ones into the database, this may take a while`);
+    logger.info(`Fetching ${type === 'day' ? 'dai' : 'hour'}ly price history from exchanges and saving missing ones into the database, this may take a while`);
 
     const historicalPrices: PriceHistory[] = [];
 
     // Fetch all historical hourly prices
     for (const feed of this.feeds) {
       try {
-        historicalPrices.push(await feed.$fetchRecentHourlyPrice(this.currencies));
+        historicalPrices.push(await feed.$fetchRecentPrice(this.currencies, type));
       } catch (e) {
-        logger.info(`Cannot fetch hourly historical price from ${feed.name}. Ignoring this feed. Reason: ${e instanceof Error ? e.message : e}`);
+        logger.err(`Cannot fetch hourly historical price from ${feed.name}. Ignoring this feed. Reason: ${e instanceof Error ? e.message : e}`);
       }
     }
 
     // Group them by timestamp and currency, for example
     // grouped[123456789]['USD'] = [1, 2, 3, 4];
-    let grouped: Object = {};
+    const grouped: Object = {};
     for (const historicalEntry of historicalPrices) {
       for (const time in historicalEntry) {
         if (existingPriceTimes.includes(parseInt(time, 10))) {
           continue;
         }
 
-        if (grouped[time] == undefined) {
+        if (grouped[time] === undefined) {
           grouped[time] = {
             USD: [], EUR: [], GBP: [], CAD: [], CHF: [], AUD: [], JPY: []
-          }
+          };
         }
 
         for (const currency of this.currencies) {
@@ -238,13 +243,22 @@ class PriceUpdater {
     for (const time in grouped) {
       const prices: Prices = this.getEmptyPricesObj();
       for (const currency in grouped[time]) {
-        prices[currency] = Math.round((grouped[time][currency].reduce((partialSum, a) => partialSum + a, 0)) / grouped[time][currency].length);
+        if (grouped[time][currency].length === 0) {
+          continue;
+        }
+        prices[currency] = Math.round((grouped[time][currency].reduce(
+          (partialSum, a) => partialSum + a, 0)
+        ) / grouped[time][currency].length);
       }
       await PricesRepository.$savePrices(parseInt(time, 10), prices);
       ++totalInserted;
     }
 
-    logger.info(`Inserted ${totalInserted} hourly historical prices into the db`);
+    if (totalInserted > 0) {
+      logger.notice(`Inserted ${totalInserted} ${type === 'day' ? 'dai' : 'hour'}ly historical prices into the db`);
+    } else {
+      logger.debug(`Inserted ${totalInserted} ${type === 'day' ? 'dai' : 'hour'}ly historical prices into the db`);
+    }
   }
 }
 

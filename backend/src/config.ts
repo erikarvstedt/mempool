@@ -1,4 +1,6 @@
-const configFile = require('../mempool-config.json');
+const configFromFile = require(
+    process.env.MEMPOOL_CONFIG_FILE ? process.env.MEMPOOL_CONFIG_FILE : '../mempool-config.json'
+);
 
 interface IConfig {
   MEMPOOL: {
@@ -23,9 +25,28 @@ interface IConfig {
     EXTERNAL_RETRY_INTERVAL: number;
     USER_AGENT: string;
     STDOUT_LOG_MIN_PRIORITY: 'emerg' | 'alert' | 'crit' | 'err' | 'warn' | 'notice' | 'info' | 'debug';
+    AUTOMATIC_BLOCK_REINDEXING: boolean;
+    POOLS_JSON_URL: string,
+    POOLS_JSON_TREE_URL: string,
   };
   ESPLORA: {
     REST_API_URL: string;
+  };
+  LIGHTNING: {
+    ENABLED: boolean;
+    BACKEND: 'lnd' | 'cln' | 'ldk';
+    TOPOLOGY_FOLDER: string;
+    STATS_REFRESH_INTERVAL: number;
+    GRAPH_REFRESH_INTERVAL: number;
+    LOGGER_UPDATE_INTERVAL: number;
+  };
+  LND: {
+    TLS_CERT_PATH: string;
+    MACAROON_PATH: string;
+    REST_API_URL: string;
+  };
+  CLIGHTNING: {
+    SOCKET: string;
   };
   ELECTRUM: {
     HOST: string;
@@ -88,6 +109,12 @@ interface IConfig {
     BISQ_URL: string;
     BISQ_ONION: string;
   };
+  MAXMIND: {
+    ENABLED: boolean;
+    GEOLITE2_CITY: string;
+    GEOLITE2_ASN: string;
+    GEOIP2_ISP: string;
+  },
 }
 
 const defaults: IConfig = {
@@ -113,6 +140,9 @@ const defaults: IConfig = {
     'EXTERNAL_RETRY_INTERVAL': 0,
     'USER_AGENT': 'mempool',
     'STDOUT_LOG_MIN_PRIORITY': 'debug',
+    'AUTOMATIC_BLOCK_REINDEXING': false,
+    'POOLS_JSON_URL': 'https://raw.githubusercontent.com/mempool/mining-pools/master/pools.json',
+    'POOLS_JSON_TREE_URL': 'https://api.github.com/repos/mempool/mining-pools/git/trees/master',
   },
   'ESPLORA': {
     'REST_API_URL': 'http://127.0.0.1:3000',
@@ -158,6 +188,22 @@ const defaults: IConfig = {
     'ENABLED': false,
     'DATA_PATH': '/bisq/statsnode-data/btc_mainnet/db'
   },
+  'LIGHTNING': {
+    'ENABLED': false,
+    'BACKEND': 'lnd',
+    'TOPOLOGY_FOLDER': '',
+    'STATS_REFRESH_INTERVAL': 600,
+    'GRAPH_REFRESH_INTERVAL': 600,
+    'LOGGER_UPDATE_INTERVAL': 30,
+  },
+  'LND': {
+    'TLS_CERT_PATH': '',
+    'MACAROON_PATH': '',
+    'REST_API_URL': 'https://localhost:8080',
+  },
+  'CLIGHTNING': {
+    'SOCKET': '',
+  },
   'SOCKS5PROXY': {
     'ENABLED': false,
     'USE_ONION': true,
@@ -166,18 +212,24 @@ const defaults: IConfig = {
     'USERNAME': '',
     'PASSWORD': ''
   },
-  "PRICE_DATA_SERVER": {
+  'PRICE_DATA_SERVER': {
     'TOR_URL': 'http://wizpriceje6q5tdrxkyiazsgu7irquiqjy2dptezqhrtu7l2qelqktid.onion/getAllMarketPrices',
     'CLEARNET_URL': 'https://price.bisq.wiz.biz/getAllMarketPrices'
   },
-  "EXTERNAL_DATA_SERVER": {
+  'EXTERNAL_DATA_SERVER': {
     'MEMPOOL_API': 'https://mempool.space/api/v1',
     'MEMPOOL_ONION': 'http://mempoolhqx4isw62xs7abwphsq7ldayuidyx2v2oethdhhj6mlo2r6ad.onion/api/v1',
     'LIQUID_API': 'https://liquid.network/api/v1',
     'LIQUID_ONION': 'http://liquidmom47f6s3m53ebfxn47p76a6tlnxib3wp6deux7wuzotdr6cyd.onion/api/v1',
     'BISQ_URL': 'https://bisq.markets/api',
     'BISQ_ONION': 'http://bisqmktse2cabavbr2xjq7xw3h6g5ottemo5rolfcwt6aly6tp5fdryd.onion/api'
-  }
+  },
+  "MAXMIND": {
+    'ENABLED': false,
+    "GEOLITE2_CITY": "/usr/local/share/GeoIP/GeoLite2-City.mmdb",
+    "GEOLITE2_ASN": "/usr/local/share/GeoIP/GeoLite2-ASN.mmdb",
+    "GEOIP2_ISP": "/usr/local/share/GeoIP/GeoIP2-ISP.mmdb"
+  },
 };
 
 class Config implements IConfig {
@@ -190,12 +242,16 @@ class Config implements IConfig {
   SYSLOG: IConfig['SYSLOG'];
   STATISTICS: IConfig['STATISTICS'];
   BISQ: IConfig['BISQ'];
+  LIGHTNING: IConfig['LIGHTNING'];
+  LND: IConfig['LND'];
+  CLIGHTNING: IConfig['CLIGHTNING'];
   SOCKS5PROXY: IConfig['SOCKS5PROXY'];
   PRICE_DATA_SERVER: IConfig['PRICE_DATA_SERVER'];
   EXTERNAL_DATA_SERVER: IConfig['EXTERNAL_DATA_SERVER'];
+  MAXMIND: IConfig['MAXMIND'];
 
   constructor() {
-    const configs = this.merge(configFile, defaults);
+    const configs = this.merge(configFromFile, defaults);
     this.MEMPOOL = configs.MEMPOOL;
     this.ESPLORA = configs.ESPLORA;
     this.ELECTRUM = configs.ELECTRUM;
@@ -205,9 +261,13 @@ class Config implements IConfig {
     this.SYSLOG = configs.SYSLOG;
     this.STATISTICS = configs.STATISTICS;
     this.BISQ = configs.BISQ;
+    this.LIGHTNING = configs.LIGHTNING;
+    this.LND = configs.LND;
+    this.CLIGHTNING = configs.CLIGHTNING;
     this.SOCKS5PROXY = configs.SOCKS5PROXY;
     this.PRICE_DATA_SERVER = configs.PRICE_DATA_SERVER;
     this.EXTERNAL_DATA_SERVER = configs.EXTERNAL_DATA_SERVER;
+    this.MAXMIND = configs.MAXMIND;
   }
 
   merge = (...objects: object[]): IConfig => {

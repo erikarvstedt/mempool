@@ -20,7 +20,10 @@
     "EXTERNAL_MAX_RETRY": 1,
     "EXTERNAL_RETRY_INTERVAL": 0,
     "USER_AGENT": "mempool",
-    "STDOUT_LOG_MIN_PRIORITY": "debug"
+    "STDOUT_LOG_MIN_PRIORITY": "debug",
+    "AUTOMATIC_BLOCK_REINDEXING": false,
+    "POOLS_JSON_URL": "https://raw.githubusercontent.com/mempool/mining-pools/master/pools.json",
+    "POOLS_JSON_TREE_URL": "https://api.github.com/repos/mempool/mining-pools/git/trees/master"
   },
   "CORE_RPC": {
     "HOST": "127.0.0.1",
@@ -62,9 +65,30 @@
     "ENABLED": true,
     "TX_PER_SECOND_SAMPLE_PERIOD": 150
   },
+  "MAXMIND": {
+    "ENABLED": false,
+    "GEOLITE2_CITY": "/usr/local/share/GeoIP/GeoLite2-City.mmdb",
+    "GEOLITE2_ASN": "/usr/local/share/GeoIP/GeoLite2-ASN.mmdb",
+    "GEOIP2_ISP": "/usr/local/share/GeoIP/GeoIP2-ISP.mmdb"
+  },
   "BISQ": {
     "ENABLED": false,
     "DATA_PATH": "/bisq/statsnode-data/btc_mainnet/db"
+  },
+  "LIGHTNING": {
+    "ENABLED": false,
+    "BACKEND": "lnd",
+    "STATS_REFRESH_INTERVAL": 600,
+    "GRAPH_REFRESH_INTERVAL": 600,
+    "LOGGER_UPDATE_INTERVAL": 30
+  },
+  "LND": {
+    "TLS_CERT_PATH": "tls.cert",
+    "MACAROON_PATH": "readonly.macaroon",
+    "REST_API_URL": "https://localhost:8080"
+  },
+  "CLIGHTNING": {
+    "SOCKET": "lightning-rpc"
   },
   "SOCKS5PROXY": {
     "ENABLED": false,

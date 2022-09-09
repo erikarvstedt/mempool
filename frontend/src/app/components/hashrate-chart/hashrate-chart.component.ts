@@ -11,6 +11,7 @@ import { StorageService } from 'src/app/services/storage.service';
 import { MiningService } from 'src/app/services/mining.service';
 import { download } from 'src/app/shared/graphs.utils';
 import { ActivatedRoute } from '@angular/router';
+import { StateService } from 'src/app/services/state.service';
 
 @Component({
   selector: 'app-hashrate-chart',
@@ -47,7 +48,7 @@ export class HashrateChartComponent implements OnInit {
   formatNumber = formatNumber;
   timespan = '';
   chartInstance: any = undefined;
-  maResolution: number =  30;
+  network = '';
 
   constructor(
     @Inject(LOCALE_ID) public locale: string,
@@ -57,17 +58,20 @@ export class HashrateChartComponent implements OnInit {
     private storageService: StorageService,
     private miningService: MiningService,
     private route: ActivatedRoute,
+    private stateService: StateService
   ) {
   }
 
   ngOnInit(): void {
+    this.stateService.networkChanged$.subscribe((network) => this.network = network);
+
     let firstRun = true;
 
     if (this.widget) {
       this.miningWindowPreference = '1y';
     } else {
       this.seoService.setTitle($localize`:@@3510fc6daa1d975f331e3a717bdf1a34efa06dff:Hashrate & Difficulty`);
-      this.miningWindowPreference = this.miningService.getDefaultTimespan('1m');
+      this.miningWindowPreference = this.miningService.getDefaultTimespan('3m');
     }
     this.radioGroupForm = this.formBuilder.group({ dateSpan: this.miningWindowPreference });
     this.radioGroupForm.controls.dateSpan.setValue(this.miningWindowPreference);
@@ -95,6 +99,7 @@ export class HashrateChartComponent implements OnInit {
             .pipe(
               tap((response) => {
                 const data = response.body;
+
                 // We generate duplicated data point so the tooltip works nicely
                 const diffFixed = [];
                 let diffIndex = 1;
@@ -104,7 +109,7 @@ export class HashrateChartComponent implements OnInit {
                     while (hashIndex < data.hashrates.length) {
                       diffFixed.push({
                         timestamp: data.hashrates[hashIndex].timestamp,
-                        difficulty: data.difficulty[data.difficulty.length - 1].difficulty
+                        difficulty: data.difficulty.length > 0 ?  data.difficulty[data.difficulty.length - 1].difficulty : null
                       });
                       ++hashIndex;
                     }
@@ -112,7 +117,7 @@ export class HashrateChartComponent implements OnInit {
                   }
 
                   while (hashIndex < data.hashrates.length && diffIndex < data.difficulty.length &&
-                    data.hashrates[hashIndex].timestamp <= data.difficulty[diffIndex].timestamp
+                    data.hashrates[hashIndex].timestamp <= data.difficulty[diffIndex].time
                   ) {
                     diffFixed.push({
                       timestamp: data.hashrates[hashIndex].timestamp,
@@ -123,17 +128,14 @@ export class HashrateChartComponent implements OnInit {
                   ++diffIndex;
                 }
 
-                this.maResolution = 30;
-                if (["3m", "6m"].includes(this.timespan)) {
-                  this.maResolution = 7;
-                }
+                let maResolution = 15;
                 const hashrateMa = [];
-                for (let i = this.maResolution - 1; i < data.hashrates.length; ++i) {
+                for (let i = maResolution - 1; i < data.hashrates.length; ++i) {
                   let avg = 0;
-                  for (let y = this.maResolution - 1; y >= 0; --y) {
+                  for (let y = maResolution - 1; y >= 0; --y) {
                     avg += data.hashrates[i - y].avgHashrate;
                   }
-                  avg /= this.maResolution;
+                  avg /= maResolution;
                   hashrateMa.push([data.hashrates[i].timestamp * 1000, avg]);
                 }
 
@@ -229,11 +231,15 @@ export class HashrateChartComponent implements OnInit {
             } else if (tick.seriesIndex === 1) { // Difficulty
               let difficultyPowerOfTen = hashratePowerOfTen;
               let difficulty = tick.data[1];
-              if (this.isMobile()) {
-                difficultyPowerOfTen = selectPowerOfTen(tick.data[1]);
-                difficulty = Math.round(tick.data[1] / difficultyPowerOfTen.divider);
+              if (difficulty === null) {
+                difficultyString = `${tick.marker} ${tick.seriesName}: No data<br>`;  
+              } else {
+                if (this.isMobile()) {
+                  difficultyPowerOfTen = selectPowerOfTen(tick.data[1]);
+                  difficulty = Math.round(tick.data[1] / difficultyPowerOfTen.divider);
+                }
+                difficultyString = `${tick.marker} ${tick.seriesName}: ${formatNumber(difficulty, this.locale, '1.2-2')} ${difficultyPowerOfTen.unit}<br>`;
               }
-              difficultyString = `${tick.marker} ${tick.seriesName}: ${formatNumber(difficulty, this.locale, '1.2-2')} ${difficultyPowerOfTen.unit}<br>`;
             } else if (tick.seriesIndex === 2) { // Hashrate MA
               let hashrate = tick.data[1];
               if (this.isMobile()) {
@@ -275,17 +281,17 @@ export class HashrateChartComponent implements OnInit {
             },
           },
           {
-            name: $localize`::Difficulty`,
+            name: $localize`:@@25148835d92465353fc5fe8897c27d5369978e5a:Difficulty`,
             inactiveColor: 'rgb(110, 112, 121)',
-            textStyle: {  
+            textStyle: {
               color: 'white',
             },
             icon: 'roundRect',
           },
           {
-            name: $localize`Hashrate` + ` (MA${this.maResolution})`,
+            name: $localize`Hashrate (MA)`,
             inactiveColor: 'rgb(110, 112, 121)',
-            textStyle: {  
+            textStyle: {
               color: 'white',
             },
             icon: 'roundRect',
@@ -294,11 +300,18 @@ export class HashrateChartComponent implements OnInit {
             },
           },
         ],
+        selected: JSON.parse(this.storageService.getValue('hashrate_difficulty_legend')) ?? {
+          '$localize`:@@79a9dc5b1caca3cbeb1733a19515edacc5fc7920:Hashrate`': true,
+          '$localize`::Difficulty`': this.network === '',
+          '$localize`Hashrate (MA)`': true,
+        },
       },
       yAxis: data.hashrates.length === 0 ? undefined : [
         {
           min: (value) => {
-            return value.min * 0.9;
+            const selectedPowerOfTen: any = selectPowerOfTen(value.min);
+            const newMin = Math.floor(value.min / selectedPowerOfTen.divider / 10);
+            return newMin * selectedPowerOfTen.divider * 10;
           },
           type: 'value',
           axisLabel: {
@@ -326,6 +339,9 @@ export class HashrateChartComponent implements OnInit {
           axisLabel: {
             color: 'rgb(110, 112, 121)',
             formatter: (val) => {
+              if (this.stateService.network === 'signet') {
+                return val;
+              }
               const selectedPowerOfTen: any = selectPowerOfTen(val);
               const newVal = Math.round(val / selectedPowerOfTen.divider);
               return `${newVal} ${selectedPowerOfTen.unit}`;
@@ -339,6 +355,7 @@ export class HashrateChartComponent implements OnInit {
       series: data.hashrates.length === 0 ? [] : [
         {
           zlevel: 0,
+          yAxisIndex: 0,
           name: $localize`:@@79a9dc5b1caca3cbeb1733a19515edacc5fc7920:Hashrate`,
           showSymbol: false,
           symbol: 'none',
@@ -362,7 +379,7 @@ export class HashrateChartComponent implements OnInit {
         },
         {
           zlevel: 2,
-          name: $localize`Hashrate` + ` (MA${this.maResolution})`,
+          name: $localize`Hashrate (MA)`,
           showSymbol: false,
           symbol: 'none',
           data: data.hashrateMa,
@@ -403,6 +420,10 @@ export class HashrateChartComponent implements OnInit {
 
   onChartInit(ec) {
     this.chartInstance = ec;
+
+    this.chartInstance.on('legendselectchanged', (e) => {
+      this.storageService.setValue('hashrate_difficulty_legend', JSON.stringify(e.selected));
+    });
   }
 
   isMobile() {

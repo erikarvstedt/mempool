@@ -1,11 +1,12 @@
-import { Component, Input, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, Input, AfterViewInit, ViewChild, ElementRef, ChangeDetectionStrategy } from '@angular/core';
 import * as QRCode from 'qrcode';
 import { StateService } from 'src/app/services/state.service';
 
 @Component({
   selector: 'app-qrcode',
   templateUrl: './qrcode.component.html',
-  styleUrls: ['./qrcode.component.scss']
+  styleUrls: ['./qrcode.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class QrcodeComponent implements AfterViewInit {
   @Input() data: string;
@@ -19,12 +20,23 @@ export class QrcodeComponent implements AfterViewInit {
     private stateService: StateService,
   ) { }
 
+  ngOnChanges() {
+    if (!this.canvas || !this.canvas.nativeElement) {
+      return;
+    }
+    this.render();
+  }
+
   ngAfterViewInit() {
+    this.render();
+  }
+
+  render() {
     if (!this.stateService.isBrowser) {
       return;
     }
     const opts: QRCode.QRCodeRenderersOptions = {
-      errorCorrectionLevel: 'H',
+      errorCorrectionLevel: 'L',
       margin: 0,
       color: {
         dark: '#000',
@@ -38,7 +50,11 @@ export class QrcodeComponent implements AfterViewInit {
     }
 
     const address = this.data;
-    if (this.data.indexOf('bc1') === 0 || this.data.indexOf('tb1') === 0) {
+    if (
+      this.data.indexOf('bc1') === 0 ||
+      this.data.indexOf('tb1') === 0 ||
+      this.data.indexOf('bcrt1') === 0
+    ) {
       address.toUpperCase();
     }
 

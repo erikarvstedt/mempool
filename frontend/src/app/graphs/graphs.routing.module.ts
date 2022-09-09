@@ -1,5 +1,6 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
+import { BlockPredictionGraphComponent } from '../components/block-prediction-graph/block-prediction-graph.component';
 import { BlockFeeRatesGraphComponent } from '../components/block-fee-rates-graph/block-fee-rates-graph.component';
 import { BlockFeesGraphComponent } from '../components/block-fees-graph/block-fees-graph.component';
 import { BlockRewardsGraphComponent } from '../components/block-rewards-graph/block-rewards-graph.component';
@@ -17,6 +18,12 @@ import { StartComponent } from '../components/start/start.component';
 import { StatisticsComponent } from '../components/statistics/statistics.component';
 import { TelevisionComponent } from '../components/television/television.component';
 import { DashboardComponent } from '../dashboard/dashboard.component';
+import { NodesNetworksChartComponent } from '../lightning/nodes-networks-chart/nodes-networks-chart.component';
+import { LightningStatisticsChartComponent } from '../lightning/statistics-chart/lightning-statistics-chart.component';
+import { NodesPerISPChartComponent } from '../lightning/nodes-per-isp-chart/nodes-per-isp-chart.component';
+import { NodesPerCountryChartComponent } from '../lightning/nodes-per-country-chart/nodes-per-country-chart.component';
+import { NodesMap } from '../lightning/nodes-map/nodes-map.component';
+import { NodesChannelsMap } from '../lightning/nodes-channels-map/nodes-channels-map.component';
 
 const browserWindow = window || {};
 // @ts-ignore
@@ -89,8 +96,36 @@ const routes: Routes = [
             component: BlockSizesWeightsGraphComponent,
           },
           {
+            path: 'lightning/nodes-networks',
+            component: NodesNetworksChartComponent,
+          },
+          {
+            path: 'lightning/capacity',
+            component: LightningStatisticsChartComponent,
+          },
+          {
+            path: 'lightning/nodes-per-isp',
+            component: NodesPerISPChartComponent,
+          },
+          {
+            path: 'lightning/nodes-per-country',
+            component: NodesPerCountryChartComponent,
+          },
+          {
+            path: 'lightning/nodes-map',
+            component: NodesMap,
+          },
+          {
+            path: 'lightning/nodes-channels-map',
+            component: NodesChannelsMap,
+          },
+          {
             path: '',
             redirectTo: 'mempool',
+          },
+          {
+            path: 'mining/block-prediction',
+            component: BlockPredictionGraphComponent,
           },
         ]
       },
